@@ -4,10 +4,10 @@ using UnityEngine;
 
 public class TurnBasedCombat : MonoBehaviour
 {
-    int playerHP, enemyHP, attackCounter, enemyArmor, playerArmor;
-    bool defend, charge, game;
-    static int maxPlayerHP = 10;
-    static int maxPlayerArmor = 2; 
+    Player player;
+    Enemy enemy1;
+    int attackCounter;
+    bool game;
     // Start is called before the first frame update
     void Start()
     {
@@ -25,13 +25,13 @@ public class TurnBasedCombat : MonoBehaviour
                 if (attackCounter < 2)
                 {
                     rand = Random.value > 0.15f ? Random.Range(1, 3) : Random.Range(2, 5);
-                    enemyHP = Attack(enemyHP, rand, enemyArmor);
+                    Attack(enemy1, rand);
                     attackCounter++;
                 }
                 else
                 {
                     rand = 4;
-                    enemyHP = Attack(enemyHP, rand, enemyArmor);
+                    Attack(enemy1, rand);
                     attackCounter = 0;
                 }
                 ShowStatus();
@@ -42,22 +42,23 @@ public class TurnBasedCombat : MonoBehaviour
             }
             else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
             {
-                playerHP = Heal(playerHP, 2);
+                Heal(player, 3);
                 ShowStatus();
                 EnemyTurn();
             }
             else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3))
             {
                 Debug.Log("Player is defending");
-                defend = true;
+                player.Defend = true;
                 EnemyTurn();
             }
             else if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4))
             {
-                if (playerArmor < maxPlayerArmor)
+                if (!player.Helmet)
                 {
                     Debug.Log("Player now wears a helmet");
-                    playerArmor++;
+                    player.Helmet = true;
+                    player.Armor++;
                     EnemyTurn();
                 }
                 else
@@ -76,24 +77,24 @@ public class TurnBasedCombat : MonoBehaviour
     {
         if (game)
         {
-            if (charge)
+            if (enemy1.Charge)
             {
-                if (!defend)
+                if (!player.Defend)
                 {
-                    playerHP = 0;
+                    player.HP = 0;
                     ShowStatus();
                 }
                 else
                     Debug.Log("Player defended");
-                charge = false;
+                enemy1.Charge = false;
             }
             else
             {
                 if (Random.value > 0.35f)
                 {
-                    if (!defend)
+                    if (!player.Defend)
                     {
-                        playerHP = Attack(playerHP, Random.Range(2, 5), playerArmor);
+                        Attack(player, Random.Range(2, 5));
                         ShowStatus();
                     }
                     else
@@ -102,57 +103,51 @@ public class TurnBasedCombat : MonoBehaviour
                 else
                 {
                     Debug.Log("Enemy is charging energy");
-                    charge = true;
+                    enemy1.Charge = true;
                 }
             }
-            defend = false;
+            player.Defend = false;
         }
     }
     void ShowStatus()
     {
-        Debug.Log($"Player HP: \t {playerHP} \n Enemy HP: \t {enemyHP}");
-        if (playerHP <= 0)
+        Debug.Log($"Player HP: \t {player.HP} \n Enemy HP: \t {enemy1.HP}");
+        if (player.HP <= 0)
         {
             Debug.Log("You died. Game over.");
             game = false;
         }
-        else if (enemyHP <= 0)
+        else if (enemy1.HP <= 0)
         {
             Debug.Log("Enemy died. You win.");
             game = false;
         }
     }
-    int Attack( int target, int value, int armor = 0)
+    void Attack( Creature target, int value)
     {
-        if (armor < value)
+        if (target.Armor < value)
         {
             //Debug.LogWarning($"target {target}");
-            target -= value - armor;
+            target.HP -= value - target.Armor;
             /*Debug.LogWarning($"value {value}");
             Debug.LogWarning($"armor {armor}");
             Debug.LogWarning($"target {target}");*/
-            if (target < 0)
-                target = 0;
+            if (target.HP < 0)
+                target.HP = 0;
         }
-        return target;
     }
-    int Heal (int target, int value)
+    void Heal (Creature target, int value)
     {
-        target = target + value;
-        if (target > maxPlayerHP)
-            target = maxPlayerHP;
-        return target;
+        target.HP = target.HP + value;
+        if (target.HP > target.MaxHP)
+            target.HP = target.MaxHP;
     }
     private void Reset()
     {
+        player = new Player(10, 1);
+        enemy1 = new Enemy(Random.Range(8, 13), Random.Range(0, 2));
         attackCounter = 0;
-        playerHP = 10;
-        enemyHP = Random.Range(8, 13);
-        playerArmor = 1;
-        enemyArmor = Random.Range(0, 2);
         Debug.Log("(1) attack (2) heal (3) defend (4) wear helmet");
-        defend = false;
-        charge = false;
         game = true;
     }
 }
